@@ -1,0 +1,454 @@
+##########################################################################
+##												                                              ##
+##		 Functional Data Analysis for Physical Activity data              ##
+##												                                              ##
+##########################################################################
+
+setwd("C:/Users/Desktop/Validation/code & results")
+
+ 	library(splines)
+	library(Matrix)
+	install.packages("matplot")
+	library(matplot)
+	install.packages("fda")
+	library(fda)
+
+
+
+##-----------------------------------------------------------------------
+##				Primary Data Input
+##-----------------------------------------------------------------------
+
+## NOT PRESENT HERE
+
+##-----------------------------------------------------------------------
+##			FDA: Weekday vs Weekend (Overall)
+##-----------------------------------------------------------------------
+
+
+
+##????????????????????????????????????????????????????????????????????????
+
+## WRITE A FUNCTION TO PERFORM THE FDA FOR DIFFERENT CHARACTERISTICS
+
+## This function can only handle two groups comparison, using permutation T-Test
+
+## Function Inputs:
+## FuncDataAnly<-function(
+##			##... charateristic & categories
+##				  class, g1_name, g2_name, g1_ID, g2_ID
+##				, original_nostep_data	## data activity counts
+##				, original_percsit_data	## data percent of sitting/lying
+##				, original_percstd_data	## data percent of standing
+##
+##			##... for filenames & graph titles
+##				, week_range 		## AllWeek / Weekday/ Weekend
+##				, date			## Date of output
+##
+##			##... parameters in FDA
+##				, n_basis = 23		## number of basis functions in the Functional Data Analysis
+##				, timepoints = c(0:23)	## number of timepoints to model using the basis functions
+##				)
+
+##????????????????????????????????????????????????????????????????????????
+
+
+
+
+FuncDataAnly<-function(	  class, g1_name, g2_name, g1_ID, g2_ID
+				, original_nostep_data
+				, original_percsit_data
+				, original_percstd_data
+				, week_range 		
+				, date
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+	{
+
+##????????????  FUNCTION START ???????????????
+
+
+##....... Separate ID by categories 
+##............................................
+
+	g1_ID_nostep<-paste("mean_nostep.", g1_ID, sep="")
+	g1_ID_perc_sit<-paste("mean_perc_sit.", g1_ID, sep="")
+	g1_ID_perc_stand<-paste("mean_perc_stand.", g1_ID, sep="")
+
+	g2_ID_nostep<-paste("mean_nostep.", g2_ID, sep="")
+	g2_ID_perc_sit<-paste("mean_perc_sit.", g2_ID, sep="")
+	g2_ID_perc_stand<-paste("mean_perc_stand.", g2_ID, sep="")
+
+
+	
+##....... Prepare the comparison datasets .........
+##.................................................
+
+	mean_nostep_g1_data<-original_nostep_data[,g1_ID_nostep]
+	mean_nostep_g2_data<-original_nostep_data[,g2_ID_nostep]
+
+	mean_percsit_g1_data<-original_percsit_data[,g1_ID_perc_sit]
+	mean_percsit_g2_data<-original_percsit_data[,g2_ID_perc_sit]
+
+	mean_percstd_g1_data<-original_percstd_data[,g1_ID_perc_stand]
+	mean_percstd_g2_data<-original_percstd_data[,g2_ID_perc_stand]
+
+
+
+
+##.............. Basis Functions ..................
+##.................................................
+
+	basis<-create.fourier.basis(c(0,23), n_basis)
+
+	nostep_g1_fd<-smooth.basis(timepoints, data.matrix(mean_nostep_g1_data[,-1]), basis)$fd
+	nostep_g2_fd<-smooth.basis(timepoints, data.matrix(mean_nostep_g2_data[,-1]), basis)$fd
+	nostep_tperm<-tperm.fd(nostep_g1_fd, nostep_g2_fd, nperm=200, plotres=FALSE)
+
+	percsit_g1_fd<-smooth.basis(timepoints, data.matrix(mean_percsit_g1_data[,-1]), basis)$fd
+	percsit_g2_fd<-smooth.basis(timepoints, data.matrix(mean_percsit_g2_data[,-1]), basis)$fd
+	percsit_tperm<-tperm.fd(percsit_g1_fd, percsit_g2_fd, nperm=200, plotres=FALSE)
+
+	percstd_g1_fd<-smooth.basis(timepoints, data.matrix(mean_percstd_g1_data[,-1]), basis)$fd
+	percstd_g2_fd<-smooth.basis(timepoints, data.matrix(mean_percstd_g2_data[,-1]), basis)$fd
+	percstd_tperm<-tperm.fd(percstd_g1_fd, percstd_g2_fd, nperm=200, plotres=FALSE)
+
+
+
+
+##......... Smoothed Activity Counts graph ........
+##.................................................
+
+##......  Activity Counts 
+
+	filename <- paste ("R Fig/",class," ",week_range," ","_Activity Counts_",date,".pdf", sep="")
+	pdf(file = filename, height=8, width=10)
+
+	## ......  Permutation T Test
+
+	nostep_diff_g1_g2 = tperm.fd(nostep_g1_fd, nostep_g2_fd, nperm = 200, xaxt="n"
+						, main=paste("Permutation T-Test", g1_name, "vs", g2_name, "on", week_range, sep=" ")
+						) #, plotres = FALSE)
+	x.axis <- seq(from=0, to=23, by=1); axis(1, at=x.axis, labels=x.axis, las=0) 
+
+
+	## ......  Smoothed Functional Curves
+
+	par(mfrow=c(1,2),cex=0.5, cex.main=1.6, cex.axis=1.5, cex.lab=1.5)
+
+	plot(nostep_g1_fd, col=1, lty=1, main=paste("Smoothed Mean Activity Counts over", week_range, "of", g1_name, sep=" ")
+		, xlab="Time of day", ylab="Activity Count", xlim=c(0,23),ylim=c(-500, 2500))
+	lines(mean.fd(nostep_g1_fd), lwd=4, col="red")
+
+	plot(nostep_g2_fd, col=1, lty=1, main=paste("Smoothed Mean Activity Counts over", week_range, "of", g2_name, sep=" ")
+		, xlab="Time of day", ylab="Activity Count", xlim=c(0,23),ylim=c(-500, 2500))
+	lines(mean.fd(nostep_g2_fd), lwd=4, col="red")
+	
+	dev.off()
+
+
+
+##......  Sit/Lie time percentage per hour
+
+	filename <- paste ("R Fig/",class," ",week_range," ","_Percent Sitting or Lying_",date,".pdf", sep="")
+	pdf(file = filename, height=8, width=10)
+
+	## ......  Permutation T Test
+
+	percsit_diff_g1_g2 = tperm.fd(percsit_g1_fd, percsit_g2_fd, nperm = 200
+						, main=paste("Permutation T-Test", g1_name, "vs", g2_name, "on", week_range, sep=" ")
+						) #, plotres = FALSE)
+	x.axis <- seq(from=0, to=23, by=1); axis(1, at=x.axis, labels=x.axis, las=0) 
+
+
+	## ......  Smoothed Functional Curves
+
+	par(mfrow=c(1,2),cex=0.5, cex.main=1.6, cex.axis=1.5, cex.lab=1.5)
+
+	plot(percsit_g1_fd, col=1, lty=1, main=paste("Smoothed Mean %Sit/Lie over", week_range, "of", g1_name, sep=" ")
+		, xlab="Time of day", ylab="%sit/lie per hour", xlim=c(0,23),ylim=c(0, 1.2))
+	lines(mean.fd(percsit_g1_fd), lwd=4, col="red")
+
+	plot(percsit_g2_fd, col=1, lty=1, main=paste("Smoothed Mean %Sit/Lie over", week_range, "of", g2_name, sep=" ")
+		, xlab="Time of day", ylab="%sit/lie per hour", xlim=c(0,23),ylim=c(0, 1.2))
+	lines(mean.fd(percsit_g2_fd), lwd=4, col="red")
+	
+	dev.off()
+
+
+
+##......   Stand time percentage per hour
+
+	filename <- paste ("R Fig/"," ",class," ",week_range,"_Percent Standing_",date,".pdf", sep="")
+	pdf(file = filename, height=8, width=10)
+
+	## ......  Permutation T Test
+
+	percstd_diff_g1_g2 = tperm.fd(percstd_g1_fd, percstd_g2_fd, nperm = 200
+						, main=paste("Permutation T-Test", g1_name, "vs", g2_name, "on", week_range, sep=" ")
+						) #, plotres = FALSE)
+	x.axis <- seq(from=0, to=23, by=1); axis(1, at=x.axis, labels=x.axis, las=0) 
+
+
+	## ......  Smoothed Functional Curves
+
+	par(mfrow=c(1,2),cex=0.5, cex.main=1.6, cex.axis=1.5, cex.lab=1.5)
+
+	plot(percstd_g1_fd, col=1, lty=1, main=paste("Smoothed Mean %Stand over", week_range, "of", g1_name, sep=" ")
+		, xlab="Time of day", ylab="%stand per hour", xlim=c(0,23),ylim=c(0, 1.2))
+	lines(mean.fd(percstd_g1_fd), lwd=4, col="red")
+
+	plot(percstd_g2_fd, col=1, lty=1, main=paste("Smoothed Mean %Stand over", week_range, "of", g2_name, sep=" ")
+		, xlab="Time of day", ylab="%stand per hour", xlim=c(0,23),ylim=c(0, 1.2))
+	lines(mean.fd(percstd_g2_fd), lwd=4, col="red")
+	
+	dev.off()
+
+
+
+##????????????  FUNCTION END ???????????????
+
+	}
+
+
+
+##-----------------------------------------------------------------------
+##		FDA: Gender (Overall) & Gender* Weekday vs Weekend
+##-----------------------------------------------------------------------
+
+
+
+##....... Separate ID by Gender 
+##............................................
+
+
+	female_ID <- IDstring[IDstring%in%scandata$ID[scandata$Gender=="F"]]
+	male_ID   <- IDstring[IDstring%in%scandata$ID[scandata$Gender=="M"]]
+
+
+##....... Female vs. Male, Overall 
+##............................................
+
+
+FuncDataAnly( class="Gender"
+				, g1_name="Female"
+				, g2_name="Male"
+				, g1_ID=female_ID
+				, g2_ID=male_ID
+				, original_nostep_data=valid_nostep_mean_alwk_data	
+				, original_percsit_data=valid_percsit_mean_alwk_data	
+				, original_percstd_data=valid_percstd_mean_alwk_data	
+				, week_range="Allweek" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Female vs. Male, Weekday 
+##............................................
+
+
+FuncDataAnly( class="Gender"
+				, g1_name="Female"
+				, g2_name="Male"
+				, g1_ID=female_ID
+				, g2_ID=male_ID
+				, original_nostep_data=valid_nostep_mean_wday_data	
+				, original_percsit_data=valid_percsit_mean_wday_data	
+				, original_percstd_data=valid_percstd_mean_wday_data	
+				, week_range="Weekday" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Female vs. Male, Weekend 
+##............................................
+
+
+FuncDataAnly( class="Gender"
+				, g1_name="Female"
+				, g2_name="Male"
+				, g1_ID=female_ID
+				, g2_ID=male_ID
+				, original_nostep_data=valid_nostep_mean_wend_data	
+				, original_percsit_data=valid_percsit_mean_wend_data	
+				, original_percstd_data=valid_percstd_mean_wend_data	
+				, week_range="Weekend" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##----------------------------------------------------------------------------
+##	 FDA: Age by median (Overall) & Age by median * Weekday vs Weekend
+##----------------------------------------------------------------------------
+
+
+##... Separate ID by median Age (valid data only) 
+##................................................
+	
+	median<-median(scandata$age_1[scandata$ID%in%IDstring]) ## =55
+
+	age_le_median_ID <- IDstring[IDstring%in%scandata$ID[scandata$age_1<=median]]
+	age_gt_median_ID <- IDstring[IDstring%in%scandata$ID[scandata$age_1>median]]
+
+
+
+
+##....... Age less or equal to median vs. Age above median, Overall 
+##.................................................................
+
+
+FuncDataAnly( class="Age"
+				, g1_name="<=55"
+				, g2_name=">55"
+				, g1_ID=age_le_median_ID
+				, g2_ID=age_gt_median_ID
+				, original_nostep_data=valid_nostep_mean_alwk_data	
+				, original_percsit_data=valid_percsit_mean_alwk_data	
+				, original_percstd_data=valid_percstd_mean_alwk_data	
+				, week_range="Allweek" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Age less or equal to median vs. Age above median, Weekday 
+##.................................................................
+
+
+FuncDataAnly( class="Age"
+				, g1_name="<=55"
+				, g2_name=">55"
+				, g1_ID=age_le_median_ID
+				, g2_ID=age_gt_median_ID
+				, original_nostep_data=valid_nostep_mean_wday_data	
+				, original_percsit_data=valid_percsit_mean_wday_data	
+				, original_percstd_data=valid_percstd_mean_wday_data	
+				, week_range="Weekday" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Age less or equal to median vs. Age above median, Weekend 
+##.................................................................
+
+
+FuncDataAnly( class="Age"
+				, g1_name="<=55"
+				, g2_name=">55"
+				, g1_ID=age_le_median_ID
+				, g2_ID=age_gt_median_ID
+				, original_nostep_data=valid_nostep_mean_wend_data	
+				, original_percsit_data=valid_percsit_mean_wend_data	
+				, original_percstd_data=valid_percstd_mean_wend_data	
+				, week_range="Weekend" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##----------------------------------------------------------------------------------------
+##	 FDA: BMI (Overall, Normal vs Overweight vs Obese) & BMI * Weekday vs Weekend
+##----------------------------------------------------------------------------------------
+
+
+##... Separate ID by BMI group 
+##................................................
+
+	BMI_normal_ID <- IDstring[IDstring%in%scandata$ID[scandata$BMI_g=="Normal"]]
+	BMI_overwt_ID <- IDstring[IDstring%in%scandata$ID[scandata$BMI_g=="Overweight"]]
+
+	BMI_obese_ID  <- IDstring[IDstring%in%scandata$ID[scandata$BMI_g=="Obese"]]
+	BMI_nonobese_ID <- c(BMI_normal_ID, BMI_overwt_ID) ## 2 in Normal, 5 in Overweight => combine to non-obese
+
+
+
+##....... Obese vs Non-obese, Overall 
+##......................................
+
+FuncDataAnly( class="BMI"
+				, g1_name="Obese"
+				, g2_name="Non-obese"
+				, g1_ID=BMI_obese_ID
+				, g2_ID=BMI_nonobese_ID
+				, original_nostep_data=valid_nostep_mean_alwk_data	
+				, original_percsit_data=valid_percsit_mean_alwk_data	
+				, original_percstd_data=valid_percstd_mean_alwk_data	
+				, week_range="Allweek" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Obese vs Non-obese, Weekday 
+##......................................
+
+FuncDataAnly( class="BMI"
+				, g1_name="Obese"
+				, g2_name="Non-obese"
+				, g1_ID=BMI_obese_ID
+				, g2_ID=BMI_nonobese_ID
+				, original_nostep_data=valid_nostep_mean_wday_data	
+				, original_percsit_data=valid_percsit_mean_wday_data	
+				, original_percstd_data=valid_percstd_mean_wday_data	
+				, week_range="Weekday" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+##....... Obese vs Non-obese, Weekend 
+##......................................
+
+
+FuncDataAnly( class="BMI"
+				, g1_name="Obese"
+				, g2_name="Non-obese"
+				, g1_ID=BMI_obese_ID
+				, g2_ID=BMI_nonobese_ID
+				, original_nostep_data=valid_nostep_mean_wend_data	
+				, original_percsit_data=valid_percsit_mean_wend_data	
+				, original_percstd_data=valid_percstd_mean_wend_data	
+				, week_range="Weekend" 		
+				, date="9.30.19"			
+				, n_basis = 23		
+				, timepoints = c(0:23)	
+				)
+
+
+
+
+
+
+
+
