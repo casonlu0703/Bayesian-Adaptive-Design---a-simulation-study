@@ -13,8 +13,11 @@ The mTPI shares simplicity and transparency as 3+3 design and possesses solid th
 
 The simulation study revealed that mTPI has higher risk of over-dosing, especially when all doses have true toxicity probability above target toxicity probablity. BOIN tended to be more efficient when true toxicity probabilities jump across target. mTPI had higher chance in selecting the dose level than BOIN when the sample is small. However, as sample size increased, the mTPI method appeared to be more conservative. 
 
-[Difference on the selection probability](Scenario_Selection_diff_poster.pdf)
-[Difference on the number of patients being treated](Scenario_Pts_diff_poster.pdf)
+![Simulation scenarios](image/mTPI_BOIN_simulation_scenarios.png)
+
+[Difference on the selection probability](image/Scenario_Selection_diff_poster.png)
+
+[Difference on the number of patients being treated](image/Scenario_Pts_diff_poster.png)
 
 **Conclusion**: 
 
