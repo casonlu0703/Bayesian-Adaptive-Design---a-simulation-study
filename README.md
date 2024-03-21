@@ -15,9 +15,9 @@ The simulation study revealed that mTPI has higher risk of over-dosing, especial
 
 ![Simulation scenarios](image/mTPI_BOIN_simulation_scenarios.png)
 
-[Difference on the selection probability](image/Scenario_Selection_diff_poster.png)
+![Difference on the selection probability](image/Scenario_Selection_diff_poster.png)
 
-[Difference on the number of patients being treated](image/Scenario_Pts_diff_poster.png)
+![Difference on the number of patients being treated](image/Scenario_Pts_diff_poster.png)
 
 **Conclusion**: 
 
